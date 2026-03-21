@@ -112,20 +112,32 @@ const ViewFiles = () => {
     // { type: 'delete' | 'process', file: fileObj }
     const [confirmation, setConfirmation] = useState(null);
 
+    const [processingFileIds, setProcessingFileIds] = useState(new Set());
+
     const handleProcessClick = (e, file) => {
         e.stopPropagation();
 
-        // Optimistic update
-        if (activeTab === 'unprocessed') {
-            setFiles(prev => prev.filter(f => f.id !== file.id));
-        } else {
-            setFiles(prev => prev.map(f => f.id === file.id ? { ...f, status: 'processed' } : f));
-        }
+        setProcessingFileIds(prev => new Set(prev).add(file.id));
 
-        processFile(file.id).catch(err => {
-            console.error(err);
-            alert('Processing failed');
-        });
+        processFile(file.id)
+            .then(() => {
+                if (activeTab === 'unprocessed') {
+                    setFiles(prev => prev.filter(f => f.id !== file.id));
+                } else {
+                    setFiles(prev => prev.map(f => f.id === file.id ? { ...f, status: 'processed' } : f));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Processing failed');
+            })
+            .finally(() => {
+                setProcessingFileIds(prev => {
+                    const next = new Set(prev);
+                    next.delete(file.id);
+                    return next;
+                });
+            });
     };
 
     const handleReprocessClick = (e, file) => {
@@ -268,6 +280,7 @@ const ViewFiles = () => {
 
     return (
         <div className="content-container">
+            <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
             <h1>Files</h1>
 
             {/* Actions Bar */}
@@ -504,18 +517,27 @@ const ViewFiles = () => {
                                     {file.status === 'unprocessed' && (
                                         <button
                                             onClick={(e) => handleProcessClick(e, file)}
+                                            disabled={processingFileIds.has(file.id)}
                                             style={{
                                                 background: 'var(--primary-color)',
                                                 color: 'white',
                                                 border: 'none',
                                                 borderRadius: '4px',
                                                 padding: '0.25rem 0.75rem',
-                                                cursor: 'pointer',
+                                                cursor: processingFileIds.has(file.id) ? 'not-allowed' : 'pointer',
                                                 fontSize: '0.8rem',
-                                                fontWeight: '600'
+                                                fontWeight: '600',
+                                                opacity: processingFileIds.has(file.id) ? 0.7 : 1,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.4rem'
                                             }}
                                         >
-                                            Process
+                                            {processingFileIds.has(file.id) ? (
+                                                <>
+                                                    <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span> Processing...
+                                                </>
+                                            ) : 'Process'}
                                         </button>
                                     )}
                                     {file.status === 'processed' && (

@@ -149,6 +149,7 @@ const DataLibrary = () => {
                                         <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>View Raw JSON</summary>
                                         <pre style={{
                                             background: '#000',
+                                            color: '#fff',
                                             padding: '1rem',
                                             borderRadius: '8px',
                                             overflowX: 'auto',
